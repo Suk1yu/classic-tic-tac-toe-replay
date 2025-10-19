@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { RotateCcw, Users, Bot } from "lucide-react";
+import { RotateCcw, Users, Bot, Volume2 } from "lucide-react";
 
 type Player = "X" | "O" | null;
 type Board = Player[];
@@ -72,9 +72,15 @@ const GameBoard = () => {
   };
 
   const handleCellClick = (index: number) => {
-    if (board[index] || gameOver) return;
+    if (board[index]) return;
     
-    // In 2P mode, check turn; in 1P mode, only allow when it's player turn
+    // If game is over, reset instead of making a move
+    if (gameOver) {
+      resetGame();
+      return;
+    }
+    
+    // In 1P mode, only allow when it's player turn
     if (is1PMode && !isPlayerTurn) return;
 
     const currentPlayer = isPlayerTurn ? "X" : "O";
@@ -135,11 +141,6 @@ const GameBoard = () => {
     resetGame();
   };
 
-  const handleBoardClick = () => {
-    if (gameOver) {
-      resetGame();
-    }
-  };
 
   const toggleMode = () => {
     setIs1PMode(!is1PMode);
@@ -159,14 +160,19 @@ const GameBoard = () => {
         <RotateCcw className="h-6 w-6" />
       </Button>
 
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+        title="Sound"
+      >
+        <Volume2 className="h-6 w-6" />
+      </Button>
+
       <div className="flex flex-col items-center gap-8">
-        <h1 className="text-4xl font-bold text-foreground tracking-tight">
-          TIC TAC TOE
-        </h1>
 
         <div 
-          onClick={handleBoardClick}
-          className={`grid grid-cols-3 gap-0 p-0 bg-gridLine ${gameOver ? 'cursor-pointer' : ''}`}
+          className="grid grid-cols-3 gap-0 p-0 bg-gridLine"
              style={{ 
                width: 'min(90vw, 450px)', 
                height: 'min(90vw, 450px)',
@@ -176,7 +182,7 @@ const GameBoard = () => {
             <button
               key={index}
               onClick={() => handleCellClick(index)}
-              disabled={!isPlayerTurn || gameOver || cell !== null}
+              disabled={is1PMode && !isPlayerTurn}
               className={`
                 bg-background border-0 flex items-center justify-center
                 text-6xl font-bold transition-all duration-300
