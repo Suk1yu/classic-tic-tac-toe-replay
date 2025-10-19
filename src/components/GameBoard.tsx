@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { RotateCcw, Users, Bot } from "lucide-react";
 
 type Player = "X" | "O" | null;
 type Board = Player[];
@@ -23,6 +24,7 @@ const GameBoard = () => {
   const [winningLine, setWinningLine] = useState<number[]>([]);
   const [scores, setScores] = useState({ player: 0, computer: 0, ties: 0 });
   const [gameOver, setGameOver] = useState(false);
+  const [is1PMode, setIs1PMode] = useState(true);
 
   const checkWinner = (currentBoard: Board): { winner: Player; line: number[] } => {
     for (const combo of WINNING_COMBINATIONS) {
@@ -70,10 +72,14 @@ const GameBoard = () => {
   };
 
   const handleCellClick = (index: number) => {
-    if (board[index] || !isPlayerTurn || gameOver) return;
+    if (board[index] || gameOver) return;
+    
+    // In 2P mode, check turn; in 1P mode, only allow when it's player turn
+    if (is1PMode && !isPlayerTurn) return;
 
+    const currentPlayer = isPlayerTurn ? "X" : "O";
     const newBoard = [...board];
-    newBoard[index] = "X";
+    newBoard[index] = currentPlayer;
     setBoard(newBoard);
 
     const { winner: newWinner, line } = checkWinner(newBoard);
@@ -81,25 +87,40 @@ const GameBoard = () => {
       setWinner(newWinner);
       setWinningLine(line);
       setGameOver(true);
-      setScores((prev) => ({ ...prev, player: prev.player + 1 }));
-      toast.success("You win!");
+      if (is1PMode) {
+        if (currentPlayer === "X") {
+          setScores((prev) => ({ ...prev, player: prev.player + 1 }));
+          toast.success("You win!");
+        } else {
+          setScores((prev) => ({ ...prev, computer: prev.computer + 1 }));
+          toast.error("Computer wins!");
+        }
+      } else {
+        if (currentPlayer === "X") {
+          setScores((prev) => ({ ...prev, player: prev.player + 1 }));
+          toast.success("Player X wins!");
+        } else {
+          setScores((prev) => ({ ...prev, computer: prev.computer + 1 }));
+          toast.success("Player O wins!");
+        }
+      }
     } else if (isBoardFull(newBoard)) {
       setGameOver(true);
       setScores((prev) => ({ ...prev, ties: prev.ties + 1 }));
       toast("It's a tie!");
     } else {
-      setIsPlayerTurn(false);
+      setIsPlayerTurn(!isPlayerTurn);
     }
   };
 
   useEffect(() => {
-    if (!isPlayerTurn && !gameOver) {
+    if (is1PMode && !isPlayerTurn && !gameOver) {
       const timer = setTimeout(() => {
         makeComputerMove(board);
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [isPlayerTurn, gameOver]);
+  }, [isPlayerTurn, gameOver, is1PMode]);
 
   const resetGame = () => {
     setBoard(Array(9).fill(null));
@@ -114,14 +135,38 @@ const GameBoard = () => {
     resetGame();
   };
 
+  const handleBoardClick = () => {
+    if (gameOver) {
+      resetGame();
+    }
+  };
+
+  const toggleMode = () => {
+    setIs1PMode(!is1PMode);
+    resetGame();
+    setScores({ player: 0, computer: 0, ties: 0 });
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Button
+        onClick={resetScores}
+        variant="ghost"
+        size="icon"
+        className="absolute top-4 left-4 text-muted-foreground hover:text-foreground"
+        title="Reset Scores"
+      >
+        <RotateCcw className="h-6 w-6" />
+      </Button>
+
       <div className="flex flex-col items-center gap-8">
         <h1 className="text-4xl font-bold text-foreground tracking-tight">
           TIC TAC TOE
         </h1>
 
-        <div className="grid grid-cols-3 gap-0 p-0 bg-gridLine" 
+        <div 
+          onClick={handleBoardClick}
+          className={`grid grid-cols-3 gap-0 p-0 bg-gridLine ${gameOver ? 'cursor-pointer' : ''}`}
              style={{ 
                width: 'min(90vw, 450px)', 
                height: 'min(90vw, 450px)',
@@ -158,7 +203,7 @@ const GameBoard = () => {
           ))}
         </div>
 
-        <div className="flex gap-8 text-center">
+        <div className="flex gap-8 text-center items-center">
           <div className="flex flex-col">
             <span className="text-sm text-muted-foreground">PLAYER (X)</span>
             <span className="text-3xl font-bold text-playerX">{scores.player}</span>
@@ -167,34 +212,30 @@ const GameBoard = () => {
             <span className="text-sm text-muted-foreground">TIE</span>
             <span className="text-3xl font-bold text-foreground">{scores.ties}</span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm text-muted-foreground">COMPUTER (O)</span>
+          <div className="flex flex-col relative">
+            <span className="text-sm text-muted-foreground">{is1PMode ? "COMPUTER (O)" : "PLAYER (O)"}</span>
             <span className="text-3xl font-bold text-playerO">{scores.computer}</span>
+            <Button
+              onClick={toggleMode}
+              variant="ghost"
+              size="icon"
+              className="absolute -right-12 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              title={is1PMode ? "Switch to 2 Players" : "Switch to vs Computer"}
+            >
+              {is1PMode ? <Users className="h-5 w-5" /> : <Bot className="h-5 w-5" />}
+            </Button>
           </div>
         </div>
 
-        <div className="flex gap-4">
-          <Button
-            onClick={resetGame}
-            variant="secondary"
-            size="lg"
-            className="min-w-[120px]"
-          >
-            New Game
-          </Button>
-          <Button
-            onClick={resetScores}
-            variant="outline"
-            size="lg"
-            className="min-w-[120px]"
-          >
-            Reset Scores
-          </Button>
-        </div>
-
-        {!isPlayerTurn && !gameOver && (
+        {is1PMode && !isPlayerTurn && !gameOver && (
           <div className="text-muted-foreground animate-pulse">
             Computer is thinking...
+          </div>
+        )}
+        
+        {gameOver && (
+          <div className="text-muted-foreground text-sm">
+            Click anywhere to continue
           </div>
         )}
       </div>
