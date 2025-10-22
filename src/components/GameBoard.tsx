@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { RotateCcw, Users, Bot, Volume2 } from "lucide-react";
+import { RotateCcw, Users, Bot, Volume2, VolumeX } from "lucide-react";
+import { soundManager } from "@/utils/sounds";
 
 type Player = "X" | "O" | null;
 type Board = Player[];
@@ -25,6 +26,7 @@ const GameBoard = () => {
   const [scores, setScores] = useState({ player: 0, computer: 0, ties: 0 });
   const [gameOver, setGameOver] = useState(false);
   const [is1PMode, setIs1PMode] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   const checkWinner = (currentBoard: Board): { winner: Player; line: number[] } => {
     for (const combo of WINNING_COMBINATIONS) {
@@ -61,10 +63,12 @@ const GameBoard = () => {
       setWinningLine(line);
       setGameOver(true);
       setScores((prev) => ({ ...prev, computer: prev.computer + 1 }));
+      soundManager.playLose();
       toast.error("Computer wins!");
     } else if (isBoardFull(newBoard)) {
       setGameOver(true);
       setScores((prev) => ({ ...prev, ties: prev.ties + 1 }));
+      soundManager.playTie();
       toast("It's a tie!");
     } else {
       setIsPlayerTurn(true);
@@ -76,6 +80,8 @@ const GameBoard = () => {
     
     // In 1P mode, only allow when it's player turn
     if (is1PMode && !isPlayerTurn) return;
+
+    soundManager.playClick();
 
     const currentPlayer = isPlayerTurn ? "X" : "O";
     const newBoard = [...board];
@@ -90,23 +96,28 @@ const GameBoard = () => {
       if (is1PMode) {
         if (currentPlayer === "X") {
           setScores((prev) => ({ ...prev, player: prev.player + 1 }));
+          soundManager.playWin();
           toast.success("You win!");
         } else {
           setScores((prev) => ({ ...prev, computer: prev.computer + 1 }));
+          soundManager.playLose();
           toast.error("Computer wins!");
         }
       } else {
         if (currentPlayer === "X") {
           setScores((prev) => ({ ...prev, player: prev.player + 1 }));
+          soundManager.playWin();
           toast.success("Player X wins!");
         } else {
           setScores((prev) => ({ ...prev, computer: prev.computer + 1 }));
+          soundManager.playWin();
           toast.success("Player O wins!");
         }
       }
     } else if (isBoardFull(newBoard)) {
       setGameOver(true);
       setScores((prev) => ({ ...prev, ties: prev.ties + 1 }));
+      soundManager.playTie();
       toast("It's a tie!");
     } else {
       setIsPlayerTurn(!isPlayerTurn);
@@ -142,6 +153,11 @@ const GameBoard = () => {
     setScores({ player: 0, computer: 0, ties: 0 });
   };
 
+  const toggleSound = () => {
+    setSoundEnabled(!soundEnabled);
+    soundManager.setEnabled(!soundEnabled);
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Button
@@ -155,12 +171,13 @@ const GameBoard = () => {
       </Button>
 
       <Button
+        onClick={toggleSound}
         variant="ghost"
         size="icon"
         className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
-        title="Sound"
+        title={soundEnabled ? "Mute Sound" : "Unmute Sound"}
       >
-        <Volume2 className="h-6 w-6" />
+        {soundEnabled ? <Volume2 className="h-6 w-6" /> : <VolumeX className="h-6 w-6" />}
       </Button>
 
       <div 
