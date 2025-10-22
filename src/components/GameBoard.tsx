@@ -72,13 +72,7 @@ const GameBoard = () => {
   };
 
   const handleCellClick = (index: number) => {
-    if (board[index]) return;
-    
-    // If game is over, reset instead of making a move
-    if (gameOver) {
-      resetGame();
-      return;
-    }
+    if (board[index] || gameOver) return;
     
     // In 1P mode, only allow when it's player turn
     if (is1PMode && !isPlayerTurn) return;
@@ -169,7 +163,10 @@ const GameBoard = () => {
         <Volume2 className="h-6 w-6" />
       </Button>
 
-      <div className="flex flex-col items-center gap-8">
+      <div 
+        className="flex flex-col items-center gap-8"
+        onClick={() => gameOver && resetGame()}
+      >
 
         <div 
           className="grid grid-cols-3 gap-0 p-0 bg-gridLine"
@@ -185,9 +182,8 @@ const GameBoard = () => {
               disabled={is1PMode && !isPlayerTurn}
               className={`
                 bg-background border-0 flex items-center justify-center
-                text-6xl font-bold transition-all duration-300
+                transition-all duration-300
                 hover:bg-secondary disabled:cursor-not-allowed
-                ${winningLine.includes(index) ? 'animate-pulse bg-accent/20' : ''}
                 ${index % 3 !== 2 ? 'border-r-4 border-gridLine' : ''}
                 ${index < 6 ? 'border-b-4 border-gridLine' : ''}
               `}
@@ -198,8 +194,11 @@ const GameBoard = () => {
               {cell && (
                 <span 
                   className={`
+                    text-8xl font-sans transition-all duration-500
                     ${cell === 'X' ? 'text-playerX' : 'text-playerO'}
-                    animate-in fade-in zoom-in duration-300
+                    ${winningLine.includes(index) ? 'font-black scale-110 animate-[pulse_1s_ease-in-out_3]' : ''}
+                    ${gameOver && !winningLine.includes(index) && cell ? 'opacity-30' : ''}
+                    ${!gameOver ? 'animate-in fade-in zoom-in duration-300' : ''}
                   `}
                 >
                   {cell}
@@ -240,7 +239,7 @@ const GameBoard = () => {
         )}
         
         {gameOver && (
-          <div className="text-muted-foreground text-sm">
+          <div className="text-muted-foreground text-sm animate-pulse">
             Click anywhere to continue
           </div>
         )}
