@@ -27,6 +27,7 @@ const GameBoard = () => {
   const [gameOver, setGameOver] = useState(false);
   const [is1PMode, setIs1PMode] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [difficulty, setDifficulty] = useState(0); // Increases every 5 player wins
 
   const checkWinner = (currentBoard: Board): { winner: Player; line: number[] } => {
     for (const combo of WINNING_COMBINATIONS) {
@@ -44,6 +45,57 @@ const GameBoard = () => {
 
   const isBoardFull = (currentBoard: Board) => currentBoard.every((cell) => cell !== null);
 
+  const minimax = (board: Board, isMaximizing: boolean): number => {
+    const { winner } = checkWinner(board);
+    
+    if (winner === "O") return 10;
+    if (winner === "X") return -10;
+    if (isBoardFull(board)) return 0;
+
+    if (isMaximizing) {
+      let bestScore = -Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (board[i] === null) {
+          board[i] = "O";
+          const score = minimax(board, false);
+          board[i] = null;
+          bestScore = Math.max(score, bestScore);
+        }
+      }
+      return bestScore;
+    } else {
+      let bestScore = Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (board[i] === null) {
+          board[i] = "X";
+          const score = minimax(board, true);
+          board[i] = null;
+          bestScore = Math.min(score, bestScore);
+        }
+      }
+      return bestScore;
+    }
+  };
+
+  const findBestMove = (currentBoard: Board): number => {
+    let bestScore = -Infinity;
+    let bestMove = -1;
+
+    for (let i = 0; i < 9; i++) {
+      if (currentBoard[i] === null) {
+        currentBoard[i] = "O";
+        const score = minimax([...currentBoard], false);
+        currentBoard[i] = null;
+        
+        if (score > bestScore) {
+          bestScore = score;
+          bestMove = i;
+        }
+      }
+    }
+    return bestMove;
+  };
+
   const makeComputerMove = (currentBoard: Board) => {
     const emptyCells = currentBoard
       .map((cell, index) => (cell === null ? index : null))
@@ -51,10 +103,28 @@ const GameBoard = () => {
 
     if (emptyCells.length === 0) return;
 
-    // Simple AI: random move
-    const randomIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+    let moveIndex: number;
+
+    // Difficulty based AI:
+    // 0: 100% random
+    // 1-2: 70% random, 30% smart
+    // 3-4: 40% random, 60% smart
+    // 5+: 100% smart (unbeatable)
+    
+    const smartProbability = difficulty === 0 ? 0 : 
+                             difficulty <= 2 ? 0.3 :
+                             difficulty <= 4 ? 0.6 : 1.0;
+    
+    const useSmartMove = Math.random() < smartProbability;
+
+    if (useSmartMove) {
+      moveIndex = findBestMove([...currentBoard]);
+    } else {
+      moveIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+    }
+
     const newBoard = [...currentBoard];
-    newBoard[randomIndex] = "O";
+    newBoard[moveIndex] = "O";
     setBoard(newBoard);
 
     const { winner: newWinner, line } = checkWinner(newBoard);
@@ -95,9 +165,17 @@ const GameBoard = () => {
       setGameOver(true);
       if (is1PMode) {
         if (currentPlayer === "X") {
-          setScores((prev) => ({ ...prev, player: prev.player + 1 }));
+          const newPlayerScore = scores.player + 1;
+          setScores((prev) => ({ ...prev, player: newPlayerScore }));
+          
+          // Increase difficulty every 5 wins
+          if (newPlayerScore % 5 === 0) {
+            setDifficulty((prev) => prev + 1);
+            toast.success(`You win! Bot difficulty increased to level ${difficulty + 1}!`);
+          } else {
+            toast.success("You win!");
+          }
           soundManager.playWin();
-          toast.success("You win!");
         } else {
           setScores((prev) => ({ ...prev, computer: prev.computer + 1 }));
           soundManager.playLose();
@@ -143,6 +221,7 @@ const GameBoard = () => {
 
   const resetScores = () => {
     setScores({ player: 0, computer: 0, ties: 0 });
+    setDifficulty(0);
     resetGame();
   };
 
@@ -151,6 +230,7 @@ const GameBoard = () => {
     setIs1PMode(!is1PMode);
     resetGame();
     setScores({ player: 0, computer: 0, ties: 0 });
+    setDifficulty(0);
   };
 
   const toggleSound = () => {
