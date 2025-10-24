@@ -27,7 +27,7 @@ const GameBoard = () => {
   const [gameOver, setGameOver] = useState(false);
   const [is1PMode, setIs1PMode] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [difficulty, setDifficulty] = useState(0); // Increases every 5 player wins
+  const [difficulty, setDifficulty] = useState(0); // Increases every 3 player wins
 
   const checkWinner = (currentBoard: Board): { winner: Player; line: number[] } => {
     for (const combo of WINNING_COMBINATIONS) {
@@ -168,8 +168,8 @@ const GameBoard = () => {
           const newPlayerScore = scores.player + 1;
           setScores((prev) => ({ ...prev, player: newPlayerScore }));
           
-          // Increase difficulty every 5 wins
-          if (newPlayerScore % 5 === 0) {
+          // Increase difficulty every 3 wins
+          if (newPlayerScore % 3 === 0) {
             setDifficulty((prev) => prev + 1);
             toast.success(`You win! Bot difficulty increased to level ${difficulty + 1}!`);
           } else {
