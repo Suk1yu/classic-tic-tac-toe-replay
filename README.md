@@ -2,7 +2,7 @@
 
 ## Project info
 
-**URL**: tic-tac-toe-replay.vercel.app
+**URL**:  https://tic-tac-toe-replay.vercel.app
 
 ## How can I edit this code?
 
