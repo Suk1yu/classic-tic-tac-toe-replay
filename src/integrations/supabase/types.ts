@@ -14,16 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      achievements: {
+        Row: {
+          achievement_type: string
+          created_at: string
+          description: string
+          id: string
+          is_premium: boolean
+          title: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_type: string
+          created_at?: string
+          description: string
+          id?: string
+          is_premium?: boolean
+          title: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_type?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_premium?: boolean
+          title?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      game_stats: {
+        Row: {
+          best_streak: number
+          created_at: string
+          current_streak: number
+          draws: number
+          id: string
+          losses: number
+          total_games: number
+          undo_used: number
+          updated_at: string
+          user_id: string
+          wins: number
+        }
+        Insert: {
+          best_streak?: number
+          created_at?: string
+          current_streak?: number
+          draws?: number
+          id?: string
+          losses?: number
+          total_games?: number
+          undo_used?: number
+          updated_at?: string
+          user_id: string
+          wins?: number
+        }
+        Update: {
+          best_streak?: number
+          created_at?: string
+          current_streak?: number
+          draws?: number
+          id?: string
+          losses?: number
+          total_games?: number
+          undo_used?: number
+          updated_at?: string
+          user_id?: string
+          wins?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_premium_user: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "free" | "premium"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +248,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["free", "premium"],
+    },
   },
 } as const
