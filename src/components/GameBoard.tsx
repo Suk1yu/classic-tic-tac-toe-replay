@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { RotateCcw, Users, Bot, Volume2, VolumeX } from "lucide-react";
+import { RotateCcw, Users, Bot, Volume2, VolumeX, Undo2, Crown, LogIn } from "lucide-react";
 import { soundManager } from "@/utils/sounds";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 type Player = "X" | "O" | null;
 type Board = Player[];
@@ -19,7 +21,9 @@ const WINNING_COMBINATIONS = [
 ];
 
 const GameBoard = () => {
+  const navigate = useNavigate();
   const [board, setBoard] = useState<Board>(Array(9).fill(null));
+  const [boardHistory, setBoardHistory] = useState<Board[]>([]);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
   const [winner, setWinner] = useState<Player>(null);
   const [winningLine, setWinningLine] = useState<number[]>([]);
@@ -27,7 +31,41 @@ const GameBoard = () => {
   const [gameOver, setGameOver] = useState(false);
   const [is1PMode, setIs1PMode] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [difficulty, setDifficulty] = useState(0); // Increases every 3 player wins
+  const [difficulty, setDifficulty] = useState(0);
+  const [user, setUser] = useState<any>(null);
+  const [isPremium, setIsPremium] = useState(false);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      checkPremiumStatus();
+    } else {
+      setIsPremium(false);
+    }
+  }, [user]);
+
+  const checkPremiumStatus = async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    
+    setIsPremium(data?.role === "premium");
+  };
 
   const checkWinner = (currentBoard: Board): { winner: Player; line: number[] } => {
     for (const combo of WINNING_COMBINATIONS) {
@@ -153,6 +191,9 @@ const GameBoard = () => {
 
     soundManager.playClick();
 
+    // Save board to history before making move
+    setBoardHistory([...boardHistory, [...board]]);
+
     const currentPlayer = isPlayerTurn ? "X" : "O";
     const newBoard = [...board];
     newBoard[index] = currentPlayer;
@@ -213,10 +254,33 @@ const GameBoard = () => {
 
   const resetGame = () => {
     setBoard(Array(9).fill(null));
+    setBoardHistory([]);
     setIsPlayerTurn(true);
     setWinner(null);
     setWinningLine([]);
     setGameOver(false);
+  };
+
+  const handleUndo = () => {
+    if (!isPremium) {
+      toast.error("Fitur undo hanya untuk member premium!");
+      return;
+    }
+
+    if (boardHistory.length === 0) {
+      toast.error("Tidak ada langkah yang bisa di-undo");
+      return;
+    }
+
+    const previousBoard = boardHistory[boardHistory.length - 1];
+    setBoard(previousBoard);
+    setBoardHistory(boardHistory.slice(0, -1));
+    setIsPlayerTurn(true);
+    setGameOver(false);
+    setWinner(null);
+    setWinningLine([]);
+    soundManager.playClick();
+    toast.success("Langkah berhasil di-undo");
   };
 
   const resetScores = () => {
@@ -240,25 +304,60 @@ const GameBoard = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Button
-        onClick={resetScores}
-        variant="ghost"
-        size="icon"
-        className="absolute top-4 left-4 text-muted-foreground hover:text-foreground"
-        title="Reset Scores"
-      >
-        <RotateCcw className="h-6 w-6" />
-      </Button>
+      <div className="absolute top-4 left-4 flex gap-2">
+        <Button
+          onClick={resetScores}
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground hover:text-foreground"
+          title="Reset Scores"
+        >
+          <RotateCcw className="h-6 w-6" />
+        </Button>
+        <Button
+          onClick={handleUndo}
+          variant={isPremium ? "default" : "ghost"}
+          size="icon"
+          className={isPremium ? "" : "text-muted-foreground hover:text-foreground"}
+          title={isPremium ? "Undo (Premium)" : "Undo (Premium Only)"}
+          disabled={!isPremium || boardHistory.length === 0}
+        >
+          <Undo2 className="h-6 w-6" />
+        </Button>
+      </div>
 
-      <Button
-        onClick={toggleSound}
-        variant="ghost"
-        size="icon"
-        className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
-        title={soundEnabled ? "Mute Sound" : "Unmute Sound"}
-      >
-        {soundEnabled ? <Volume2 className="h-6 w-6" /> : <VolumeX className="h-6 w-6" />}
-      </Button>
+      <div className="absolute top-4 right-4 flex gap-2">
+        {user ? (
+          <Button
+            onClick={() => navigate("/premium")}
+            variant={isPremium ? "default" : "outline"}
+            size="sm"
+            className="gap-2"
+          >
+            <Crown className="h-4 w-4" />
+            {isPremium ? "Premium" : "Upgrade"}
+          </Button>
+        ) : (
+          <Button
+            onClick={() => navigate("/auth")}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <LogIn className="h-4 w-4" />
+            Login
+          </Button>
+        )}
+        <Button
+          onClick={toggleSound}
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground hover:text-foreground"
+          title={soundEnabled ? "Mute Sound" : "Unmute Sound"}
+        >
+          {soundEnabled ? <Volume2 className="h-6 w-6" /> : <VolumeX className="h-6 w-6" />}
+        </Button>
+      </div>
 
       <div 
         className="flex flex-col items-center gap-8"
