@@ -56,7 +56,18 @@ const Premium = () => {
       .eq("id", session.user.id)
       .single();
     
-    setProfile(profileData);
+    // Check if user has premium role
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", session.user.id)
+      .eq("role", "premium");
+
+    // Set profile with premium status from user_roles
+    setProfile({
+      ...profileData,
+      isPremium: roles && roles.length > 0
+    });
   };
 
   const fetchPaymentMethods = async () => {
@@ -162,7 +173,7 @@ const Premium = () => {
           </h1>
         </div>
 
-        {profile?.role === "premium" ? (
+        {profile?.isPremium ? (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
