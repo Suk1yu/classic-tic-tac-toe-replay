@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { RotateCcw, Users, Bot, Volume2, VolumeX, Undo2, Crown, LogIn } from "lucide-react";
+import { RotateCcw, Users, Bot, Volume2, VolumeX, Undo2, Crown, LogIn, Trophy, LogOut } from "lucide-react";
 import { soundManager } from "@/utils/sounds";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { checkAndUnlockAchievements } from "@/utils/achievements";
 
 type Player = "X" | "O" | null;
 type Board = Player[];
@@ -34,6 +35,8 @@ const GameBoard = () => {
   const [difficulty, setDifficulty] = useState(0);
   const [user, setUser] = useState<any>(null);
   const [isPremium, setIsPremium] = useState(false);
+  const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
+  const [undoUsedInGame, setUndoUsedInGame] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -58,13 +61,13 @@ const GameBoard = () => {
   const checkPremiumStatus = async () => {
     if (!user) return;
     
-    const { data } = await supabase
-      .from("profiles")
+    const { data: roles } = await supabase
+      .from("user_roles")
       .select("role")
-      .eq("id", user.id)
-      .single();
+      .eq("user_id", user.id)
+      .eq("role", "premium");
     
-    setIsPremium(data?.role === "premium");
+    setIsPremium(roles && roles.length > 0);
   };
 
   const checkWinner = (currentBoard: Board): { winner: Player; line: number[] } => {
@@ -183,7 +186,7 @@ const GameBoard = () => {
     }
   };
 
-  const handleCellClick = (index: number) => {
+  const handleCellClick = async (index: number) => {
     if (board[index] || gameOver) return;
     
     // In 1P mode, only allow when it's player turn
@@ -208,6 +211,40 @@ const GameBoard = () => {
         if (currentPlayer === "X") {
           const newPlayerScore = scores.player + 1;
           setScores((prev) => ({ ...prev, player: newPlayerScore }));
+          
+          // Update stats and check achievements
+          if (user) {
+            const { data: stats } = await supabase
+              .from("game_stats")
+              .select("*")
+              .eq("user_id", user.id)
+              .single();
+
+            if (stats) {
+              const newStats = {
+                wins: stats.wins + 1,
+                total_games: stats.total_games + 1,
+                current_streak: stats.current_streak + 1,
+                best_streak: Math.max(stats.best_streak, stats.current_streak + 1),
+              };
+
+              await supabase
+                .from("game_stats")
+                .update(newStats)
+                .eq("user_id", user.id);
+
+              // Check achievements
+              const gameDuration = (Date.now() - gameStartTime) / 1000;
+              await checkAndUnlockAchievements(user.id, {
+                ...stats,
+                ...newStats
+              }, {
+                won: true,
+                usedUndo: undoUsedInGame,
+                gameDuration
+              });
+            }
+          }
           
           // Increase difficulty every 3 wins
           if (newPlayerScore % 3 === 0) {
@@ -236,6 +273,34 @@ const GameBoard = () => {
     } else if (isBoardFull(newBoard)) {
       setGameOver(true);
       setScores((prev) => ({ ...prev, ties: prev.ties + 1 }));
+      
+      // Update stats for draws
+      if (user) {
+        const { data: stats } = await supabase
+          .from("game_stats")
+          .select("*")
+          .eq("user_id", user.id)
+          .single();
+
+        if (stats) {
+          const newStats = {
+            total_games: stats.total_games + 1,
+            draws: stats.draws + 1,
+            current_streak: 0,
+          };
+
+          await supabase
+            .from("game_stats")
+            .update(newStats)
+            .eq("user_id", user.id);
+
+          await checkAndUnlockAchievements(user.id, {
+            ...stats,
+            ...newStats
+          });
+        }
+      }
+      
       soundManager.playTie();
       toast("It's a tie!");
     } else {
@@ -259,6 +324,8 @@ const GameBoard = () => {
     setWinner(null);
     setWinningLine([]);
     setGameOver(false);
+    setGameStartTime(Date.now());
+    setUndoUsedInGame(false);
   };
 
   const handleUndo = () => {
@@ -279,6 +346,7 @@ const GameBoard = () => {
     setGameOver(false);
     setWinner(null);
     setWinningLine([]);
+    setUndoUsedInGame(true);
     soundManager.playClick();
     toast.success("Langkah berhasil di-undo");
   };
@@ -288,7 +356,12 @@ const GameBoard = () => {
     setDifficulty(0);
     resetGame();
   };
-
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setIsPremium(false);
+    toast.success("Logged out successfully");
+  };
 
   const toggleMode = () => {
     setIs1PMode(!is1PMode);
@@ -328,15 +401,34 @@ const GameBoard = () => {
 
       <div className="absolute top-4 right-4 flex gap-2">
         {user ? (
-          <Button
-            onClick={() => navigate("/premium")}
-            variant={isPremium ? "default" : "outline"}
-            size="sm"
-            className="gap-2"
-          >
-            <Crown className="h-4 w-4" />
-            {isPremium ? "Premium" : "Upgrade"}
-          </Button>
+          <>
+            <Button
+              onClick={() => navigate("/achievements")}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <Trophy className="h-4 w-4" />
+              Achievements
+            </Button>
+            <Button
+              onClick={() => navigate("/premium")}
+              variant={isPremium ? "default" : "outline"}
+              size="sm"
+              className="gap-2"
+            >
+              <Crown className="h-4 w-4" />
+              {isPremium ? "Premium" : "Upgrade"}
+            </Button>
+            <Button
+              onClick={handleLogout}
+              variant="ghost"
+              size="sm"
+              className="gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </>
         ) : (
           <Button
             onClick={() => navigate("/auth")}

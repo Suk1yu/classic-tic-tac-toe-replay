@@ -14,36 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
-      achievements: {
+      achievement_definitions: {
         Row: {
           achievement_type: string
-          created_at: string
+          created_at: string | null
           description: string
+          icon: string | null
           id: string
-          is_premium: boolean
+          is_premium: boolean | null
           title: string
-          unlocked_at: string
-          user_id: string
         }
         Insert: {
           achievement_type: string
-          created_at?: string
+          created_at?: string | null
           description: string
+          icon?: string | null
           id?: string
-          is_premium?: boolean
+          is_premium?: boolean | null
           title: string
-          unlocked_at?: string
-          user_id: string
         }
         Update: {
           achievement_type?: string
-          created_at?: string
+          created_at?: string | null
           description?: string
+          icon?: string | null
           id?: string
-          is_premium?: boolean
+          is_premium?: boolean | null
           title?: string
-          unlocked_at?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -187,6 +184,27 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          achievement_type: string
+          id: string
+          unlocked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          achievement_type: string
+          id?: string
+          unlocked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          achievement_type?: string
+          id?: string
+          unlocked_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
