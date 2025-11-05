@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { RotateCcw, Users, Bot, Volume2, VolumeX, Undo2, Crown, LogIn, Trophy, LogOut } from "lucide-react";
+import { RotateCcw, Users, Bot, Volume2, VolumeX, Undo2, Menu } from "lucide-react";
 import { soundManager } from "@/utils/sounds";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { checkAndUnlockAchievements } from "@/utils/achievements";
+import FullscreenMenu from "./FullscreenMenu";
 
 type Player = "X" | "O" | null;
 type Board = Player[];
@@ -37,6 +38,7 @@ const GameBoard = () => {
   const [isPremium, setIsPremium] = useState(false);
   const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
   const [undoUsedInGame, setUndoUsedInGame] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -377,6 +379,14 @@ const GameBoard = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <FullscreenMenu 
+        isOpen={isMenuOpen} 
+        onClose={() => setIsMenuOpen(false)} 
+        user={user}
+        isPremium={isPremium}
+        onLogout={handleLogout}
+      />
+
       <div className="absolute top-4 left-4 flex gap-2">
         <Button
           onClick={resetScores}
@@ -400,46 +410,6 @@ const GameBoard = () => {
       </div>
 
       <div className="absolute top-4 right-4 flex gap-2">
-        {user ? (
-          <>
-            <Button
-              onClick={() => navigate("/achievements")}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <Trophy className="h-4 w-4" />
-              Achievements
-            </Button>
-            <Button
-              onClick={() => navigate("/premium")}
-              variant={isPremium ? "default" : "outline"}
-              size="sm"
-              className="gap-2"
-            >
-              <Crown className="h-4 w-4" />
-              {isPremium ? "Premium" : "Upgrade"}
-            </Button>
-            <Button
-              onClick={handleLogout}
-              variant="ghost"
-              size="sm"
-              className="gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </>
-        ) : (
-          <Button
-            onClick={() => navigate("/auth")}
-            variant="outline"
-            size="sm"
-            className="gap-2"
-          >
-            <LogIn className="h-4 w-4" />
-            Login
-          </Button>
-        )}
         <Button
           onClick={toggleSound}
           variant="ghost"
@@ -448,6 +418,15 @@ const GameBoard = () => {
           title={soundEnabled ? "Mute Sound" : "Unmute Sound"}
         >
           {soundEnabled ? <Volume2 className="h-6 w-6" /> : <VolumeX className="h-6 w-6" />}
+        </Button>
+        <Button
+          onClick={() => setIsMenuOpen(true)}
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground hover:text-foreground"
+          title="Menu"
+        >
+          <Menu className="h-6 w-6" />
         </Button>
       </div>
 
