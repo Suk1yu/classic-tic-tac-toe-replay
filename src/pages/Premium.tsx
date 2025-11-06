@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Crown, Upload, CheckCircle, Clock, XCircle, ArrowLeft } from "lucide-react";
+import { Crown, Upload, CheckCircle, Clock, XCircle, ArrowLeft, Copy } from "lucide-react";
 
 interface PaymentMethod {
   id: string;
@@ -154,6 +154,11 @@ const Premium = () => {
     }
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Alamat disalin!");
+  };
+
   if (!user) return null;
 
   return (
@@ -210,7 +215,20 @@ const Premium = () => {
                         <CardTitle className="text-lg">{method.name}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-2 text-sm">
-                        <p className="font-mono">{method.account_number}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-mono text-xs break-all flex-1">{method.account_number}</p>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyToClipboard(method.account_number);
+                            }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
                         <p className="text-muted-foreground">{method.account_name}</p>
                       </CardContent>
                     </Card>

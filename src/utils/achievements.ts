@@ -96,7 +96,7 @@ export const checkAndUnlockAchievements = async (
     if (!error) {
       toast.success(
         `🎉 Achievement Unlocked: ${achievement.icon} ${achievement.title}!`,
-        { duration: 5000 }
+        { duration: 3000 }
       );
     }
   }
