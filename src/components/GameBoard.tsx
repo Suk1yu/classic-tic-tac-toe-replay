@@ -39,6 +39,7 @@ const GameBoard = () => {
   const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
   const [undoUsedInGame, setUndoUsedInGame] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [movesInGame, setMovesInGame] = useState(0);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -198,6 +199,7 @@ const GameBoard = () => {
 
     // Save board to history before making move
     setBoardHistory([...boardHistory, [...board]]);
+    setMovesInGame(movesInGame + 1);
 
     const currentPlayer = isPlayerTurn ? "X" : "O";
     const newBoard = [...board];
@@ -223,11 +225,23 @@ const GameBoard = () => {
               .single();
 
             if (stats) {
+              const gameDuration = Math.round((Date.now() - gameStartTime) / 1000);
               const newStats = {
                 wins: stats.wins + 1,
                 total_games: stats.total_games + 1,
                 current_streak: stats.current_streak + 1,
                 best_streak: Math.max(stats.best_streak, stats.current_streak + 1),
+                total_moves: stats.total_moves + movesInGame + 1,
+                total_game_time: stats.total_game_time + gameDuration,
+                games_history: [
+                  ...(Array.isArray(stats.games_history) ? stats.games_history : []),
+                  {
+                    date: new Date().toISOString(),
+                    duration: gameDuration,
+                    result: 'win',
+                    moves: movesInGame + 1
+                  }
+                ]
               };
 
               await supabase
@@ -235,8 +249,6 @@ const GameBoard = () => {
                 .update(newStats)
                 .eq("user_id", user.id);
 
-              // Check achievements
-              const gameDuration = (Date.now() - gameStartTime) / 1000;
               await checkAndUnlockAchievements(user.id, {
                 ...stats,
                 ...newStats
@@ -285,10 +297,22 @@ const GameBoard = () => {
           .single();
 
         if (stats) {
+          const gameDuration = Math.round((Date.now() - gameStartTime) / 1000);
           const newStats = {
             total_games: stats.total_games + 1,
             draws: stats.draws + 1,
             current_streak: 0,
+            total_moves: stats.total_moves + movesInGame + 1,
+            total_game_time: stats.total_game_time + gameDuration,
+            games_history: [
+              ...(Array.isArray(stats.games_history) ? stats.games_history : []),
+              {
+                date: new Date().toISOString(),
+                duration: gameDuration,
+                result: 'draw',
+                moves: movesInGame + 1
+              }
+            ]
           };
 
           await supabase
@@ -328,6 +352,7 @@ const GameBoard = () => {
     setGameOver(false);
     setGameStartTime(Date.now());
     setUndoUsedInGame(false);
+    setMovesInGame(0);
   };
 
   const handleUndo = () => {

@@ -44,15 +44,59 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_challenges: {
+        Row: {
+          challenge_date: string
+          challenge_type: string
+          created_at: string
+          description: string
+          id: string
+          is_premium: boolean
+          reward_type: string
+          reward_value: string
+          target_value: number
+          title: string
+        }
+        Insert: {
+          challenge_date: string
+          challenge_type: string
+          created_at?: string
+          description: string
+          id?: string
+          is_premium?: boolean
+          reward_type: string
+          reward_value: string
+          target_value: number
+          title: string
+        }
+        Update: {
+          challenge_date?: string
+          challenge_type?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_premium?: boolean
+          reward_type?: string
+          reward_value?: string
+          target_value?: number
+          title?: string
+        }
+        Relationships: []
+      }
       game_stats: {
         Row: {
           best_streak: number
           created_at: string
           current_streak: number
           draws: number
+          games_history: Json | null
           id: string
           losses: number
+          powerups_available: number
+          powerups_used: number
+          total_game_time: number
           total_games: number
+          total_moves: number
           undo_used: number
           updated_at: string
           user_id: string
@@ -63,9 +107,14 @@ export type Database = {
           created_at?: string
           current_streak?: number
           draws?: number
+          games_history?: Json | null
           id?: string
           losses?: number
+          powerups_available?: number
+          powerups_used?: number
+          total_game_time?: number
           total_games?: number
+          total_moves?: number
           undo_used?: number
           updated_at?: string
           user_id: string
@@ -76,9 +125,14 @@ export type Database = {
           created_at?: string
           current_streak?: number
           draws?: number
+          games_history?: Json | null
           id?: string
           losses?: number
+          powerups_available?: number
+          powerups_used?: number
+          total_game_time?: number
           total_games?: number
+          total_moves?: number
           undo_used?: number
           updated_at?: string
           user_id?: string
@@ -163,6 +217,36 @@ export type Database = {
           },
         ]
       }
+      premium_trials: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          trial_end_date: string
+          trial_source: string
+          trial_start_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          trial_end_date: string
+          trial_source: string
+          trial_start_date?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          trial_end_date?: string
+          trial_source?: string
+          trial_start_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -187,6 +271,48 @@ export type Database = {
         }
         Relationships: []
       }
+      theme_definitions: {
+        Row: {
+          background_color: string
+          created_at: string
+          grid_color: string
+          id: string
+          is_premium: boolean
+          name: string
+          o_color: string
+          preview_image_url: string | null
+          unlock_requirement_type: string | null
+          unlock_requirement_value: string | null
+          x_color: string
+        }
+        Insert: {
+          background_color: string
+          created_at?: string
+          grid_color: string
+          id?: string
+          is_premium?: boolean
+          name: string
+          o_color: string
+          preview_image_url?: string | null
+          unlock_requirement_type?: string | null
+          unlock_requirement_value?: string | null
+          x_color: string
+        }
+        Update: {
+          background_color?: string
+          created_at?: string
+          grid_color?: string
+          id?: string
+          is_premium?: boolean
+          name?: string
+          o_color?: string
+          preview_image_url?: string | null
+          unlock_requirement_type?: string | null
+          unlock_requirement_value?: string | null
+          x_color?: string
+        }
+        Relationships: []
+      }
       user_achievements: {
         Row: {
           achievement_type: string
@@ -205,6 +331,77 @@ export type Database = {
           id?: string
           unlocked_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_challenge_progress: {
+        Row: {
+          challenge_id: string
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          progress: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          progress?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          progress?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_challenge_progress_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "daily_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referral_code: string
+          referred_id: string | null
+          referrer_id: string
+          used: boolean
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referral_code: string
+          referred_id?: string | null
+          referrer_id: string
+          used?: boolean
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referral_code?: string
+          referred_id?: string | null
+          referrer_id?: string
+          used?: boolean
+          used_at?: string | null
         }
         Relationships: []
       }
@@ -228,6 +425,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_themes: {
+        Row: {
+          active_theme_id: string | null
+          created_at: string
+          id: string
+          unlocked_themes: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_theme_id?: string | null
+          created_at?: string
+          id?: string
+          unlocked_themes?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_theme_id?: string | null
+          created_at?: string
+          id?: string
+          unlocked_themes?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_themes_active_theme_id_fkey"
+            columns: ["active_theme_id"]
+            isOneToOne: false
+            referencedRelation: "theme_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

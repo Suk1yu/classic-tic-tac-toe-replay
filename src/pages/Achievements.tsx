@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Trophy, Lock, Crown } from "lucide-react";
+import { ArrowLeft, Trophy, BarChart3 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import AchievementCard from "@/components/AchievementCard";
 
 interface Achievement {
   achievement_type: string;
@@ -21,6 +22,7 @@ const Achievements = () => {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [isPremium, setIsPremium] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [gameStats, setGameStats] = useState<any>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -73,7 +75,34 @@ const Achievements = () => {
     })) || [];
 
     setAchievements(achievementsWithStatus);
+    
+    // Fetch game stats for progress tracking
+    const { data: stats } = await supabase
+      .from("game_stats")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+    
+    setGameStats(stats);
     setLoading(false);
+  };
+
+  const getAchievementProgress = (achievementType: string) => {
+    if (!gameStats) return { current: 0, target: 0 };
+
+    const progressMap: Record<string, { current: number; target: number }> = {
+      'first_win': { current: gameStats.wins, target: 1 },
+      'win_streak_3': { current: gameStats.best_streak, target: 3 },
+      'win_streak_5': { current: gameStats.best_streak, target: 5 },
+      'win_streak_10': { current: gameStats.best_streak, target: 10 },
+      'total_wins_10': { current: gameStats.wins, target: 10 },
+      'total_wins_50': { current: gameStats.wins, target: 50 },
+      'total_wins_100': { current: gameStats.wins, target: 100 },
+      'games_100': { current: gameStats.total_games, target: 100 },
+      'no_losses_10': { current: gameStats.wins, target: 10 },
+    };
+
+    return progressMap[achievementType] || { current: 0, target: 0 };
   };
 
   const stats = {
@@ -87,13 +116,23 @@ const Achievements = () => {
     <div className="min-h-screen bg-background p-4">
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/")}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/")}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/statistics")}
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              View Statistics
+            </Button>
+          </div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Trophy className="h-8 w-8 text-yellow-500" />
             Achievements
@@ -144,61 +183,16 @@ const Achievements = () => {
             ))
           ) : (
             achievements.map((achievement) => {
-              const isLocked = !achievement.unlocked;
-              const needsPremium = achievement.is_premium && !isPremium;
-              const canView = !isLocked || !needsPremium;
-
+              const progress = getAchievementProgress(achievement.achievement_type);
+              
               return (
-                <Card
+                <AchievementCard
                   key={achievement.achievement_type}
-                  className={`transition-all ${
-                    isLocked
-                      ? "opacity-60 grayscale"
-                      : "border-yellow-500 shadow-lg shadow-yellow-500/20"
-                  }`}
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="text-4xl">{achievement.icon}</div>
-                        <div>
-                          <CardTitle className="flex items-center gap-2 text-lg">
-                            {achievement.title}
-                            {achievement.is_premium && (
-                              <Crown className="h-4 w-4 text-yellow-500" />
-                            )}
-                          </CardTitle>
-                          <CardDescription className="text-sm mt-1">
-                            {achievement.description}
-                          </CardDescription>
-                        </div>
-                      </div>
-                      {isLocked && (
-                        <Lock className="h-5 w-5 text-muted-foreground" />
-                      )}
-                    </div>
-                    
-                    {achievement.unlocked && achievement.unlocked_at && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Unlocked: {new Date(achievement.unlocked_at).toLocaleDateString("id-ID")}
-                      </p>
-                    )}
-
-                    {needsPremium && isLocked && (
-                      <div className="mt-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => navigate("/premium")}
-                          className="w-full"
-                        >
-                          <Crown className="h-4 w-4 mr-2" />
-                          Upgrade to Unlock
-                        </Button>
-                      </div>
-                    )}
-                  </CardHeader>
-                </Card>
+                  achievement={achievement}
+                  currentProgress={progress.current}
+                  targetProgress={progress.target}
+                  isPremium={isPremium}
+                />
               );
             })
           )}
