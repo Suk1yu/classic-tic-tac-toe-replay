@@ -147,6 +147,21 @@ const FullscreenMenu = ({ isOpen, onClose, user, isPremium, onLogout }: Fullscre
               </div>
             </button>
 
+            <button
+              onClick={() => handleNavigate("/referral")}
+              className="group flex items-center justify-between text-left"
+            >
+              <div className="flex items-baseline gap-4">
+                <span className="text-5xl md:text-7xl font-bold text-foreground transition-all duration-300 group-hover:text-accent group-hover:translate-x-2">
+                  Referral
+                </span>
+                <span className="text-2xl md:text-3xl text-muted-foreground">(07)</span>
+              </div>
+              <div className="w-14 h-14 md:w-16 md:h-16 rounded-full border-2 border-muted-foreground/30 flex items-center justify-center transition-all duration-300 group-hover:border-accent group-hover:bg-accent/10 group-hover:scale-110">
+                <ArrowRight className="h-6 w-6 md:h-7 md:w-7 text-muted-foreground group-hover:text-accent transition-colors duration-300" />
+              </div>
+            </button>
+
             {user ? (
               <button
                 onClick={handleLogoutClick}
@@ -156,7 +171,7 @@ const FullscreenMenu = ({ isOpen, onClose, user, isPremium, onLogout }: Fullscre
                   <span className="text-5xl md:text-7xl font-bold text-foreground transition-all duration-300 group-hover:text-destructive group-hover:translate-x-2">
                     Logout
                   </span>
-                  <span className="text-2xl md:text-3xl text-muted-foreground">(07)</span>
+                  <span className="text-2xl md:text-3xl text-muted-foreground">(08)</span>
                 </div>
                 <div className="w-14 h-14 md:w-16 md:h-16 rounded-full border-2 border-muted-foreground/30 flex items-center justify-center transition-all duration-300 group-hover:border-destructive group-hover:bg-destructive/10 group-hover:scale-110">
                   <ArrowRight className="h-6 w-6 md:h-7 md:w-7 text-muted-foreground group-hover:text-destructive transition-colors duration-300" />
@@ -171,7 +186,7 @@ const FullscreenMenu = ({ isOpen, onClose, user, isPremium, onLogout }: Fullscre
                   <span className="text-5xl md:text-7xl font-bold text-foreground transition-all duration-300 group-hover:text-accent group-hover:translate-x-2">
                     Login
                   </span>
-                  <span className="text-2xl md:text-3xl text-muted-foreground">(07)</span>
+                  <span className="text-2xl md:text-3xl text-muted-foreground">(08)</span>
                 </div>
                 <div className="w-14 h-14 md:w-16 md:h-16 rounded-full border-2 border-muted-foreground/30 flex items-center justify-center transition-all duration-300 group-hover:border-accent group-hover:bg-accent/10 group-hover:scale-110">
                   <ArrowRight className="h-6 w-6 md:h-7 md:w-7 text-muted-foreground group-hover:text-accent transition-colors duration-300" />

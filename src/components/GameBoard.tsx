@@ -6,7 +6,9 @@ import { soundManager } from "@/utils/sounds";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { checkAndUnlockAchievements } from "@/utils/achievements";
+import { trackChallengeProgress } from "@/utils/challengeTracking";
 import FullscreenMenu from "./FullscreenMenu";
+import { Lightbulb, Shield } from "lucide-react";
 
 type Player = "X" | "O" | null;
 type Board = Player[];
@@ -40,6 +42,9 @@ const GameBoard = () => {
   const [undoUsedInGame, setUndoUsedInGame] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [movesInGame, setMovesInGame] = useState(0);
+  const [blockedCell, setBlockedCell] = useState<number | null>(null);
+  const [hintCell, setHintCell] = useState<number | null>(null);
+  const [powerupsUsed, setPowerupsUsed] = useState({ hint: false, block: false });
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -64,13 +69,23 @@ const GameBoard = () => {
   const checkPremiumStatus = async () => {
     if (!user) return;
     
+    // Check if user has premium role
     const { data: roles } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
       .eq("role", "premium");
     
-    setIsPremium(roles && roles.length > 0);
+    // Check if user has active trial
+    const { data: trial } = await supabase
+      .from("premium_trials")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .gte("trial_end_date", new Date().toISOString())
+      .maybeSingle();
+    
+    setIsPremium((roles && roles.length > 0) || !!trial);
   };
 
   const checkWinner = (currentBoard: Board): { winner: Player; line: number[] } => {
@@ -142,7 +157,7 @@ const GameBoard = () => {
 
   const makeComputerMove = (currentBoard: Board) => {
     const emptyCells = currentBoard
-      .map((cell, index) => (cell === null ? index : null))
+      .map((cell, index) => (cell === null && index !== blockedCell ? index : null))
       .filter((val) => val !== null) as number[];
 
     if (emptyCells.length === 0) return;
@@ -190,7 +205,7 @@ const GameBoard = () => {
   };
 
   const handleCellClick = async (index: number) => {
-    if (board[index] || gameOver) return;
+    if (board[index] || gameOver || index === blockedCell) return;
     
     // In 1P mode, only allow when it's player turn
     if (is1PMode && !isPlayerTurn) return;
@@ -256,6 +271,14 @@ const GameBoard = () => {
                 won: true,
                 usedUndo: undoUsedInGame,
                 gameDuration
+              });
+
+              // Track challenge progress
+              await trackChallengeProgress(user.id, {
+                won: true,
+                usedUndo: undoUsedInGame,
+                streak: newStats.current_streak,
+                isPerfectGame: !undoUsedInGame
               });
             }
           }
@@ -353,6 +376,9 @@ const GameBoard = () => {
     setGameStartTime(Date.now());
     setUndoUsedInGame(false);
     setMovesInGame(0);
+    setBlockedCell(null);
+    setHintCell(null);
+    setPowerupsUsed({ hint: false, block: false });
   };
 
   const handleUndo = () => {
@@ -402,6 +428,62 @@ const GameBoard = () => {
     soundManager.setEnabled(!soundEnabled);
   };
 
+  const useHint = () => {
+    if (!isPremium) {
+      toast.error("Power-up hint hanya untuk member premium!");
+      return;
+    }
+
+    if (powerupsUsed.hint) {
+      toast.error("Hint sudah digunakan di game ini");
+      return;
+    }
+
+    if (gameOver || !isPlayerTurn) {
+      toast.error("Tidak bisa menggunakan hint sekarang");
+      return;
+    }
+
+    // Find best move
+    const bestMove = findBestMove([...board]);
+    if (bestMove !== -1) {
+      setHintCell(bestMove);
+      setPowerupsUsed({ ...powerupsUsed, hint: true });
+      toast.success("💡 Cell terbaik sudah di-highlight!");
+      
+      // Clear hint after 3 seconds
+      setTimeout(() => setHintCell(null), 3000);
+    }
+  };
+
+  const useBlockCell = () => {
+    if (!isPremium) {
+      toast.error("Power-up block hanya untuk member premium!");
+      return;
+    }
+
+    if (powerupsUsed.block) {
+      toast.error("Block sudah digunakan di game ini");
+      return;
+    }
+
+    if (gameOver || !isPlayerTurn) {
+      toast.error("Tidak bisa menggunakan block sekarang");
+      return;
+    }
+
+    // Find computer's best move and block it
+    const computerBestMove = findBestMove([...board]);
+    if (computerBestMove !== -1) {
+      setBlockedCell(computerBestMove);
+      setPowerupsUsed({ ...powerupsUsed, block: true });
+      toast.success("🛡️ Cell diblokir untuk 1 turn!");
+      
+      // Clear block after computer's turn
+      setTimeout(() => setBlockedCell(null), 2000);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <FullscreenMenu 
@@ -433,6 +515,32 @@ const GameBoard = () => {
           <Undo2 className="h-6 w-6" />
         </Button>
       </div>
+
+      {/* Power-ups (Premium Only) */}
+      {isPremium && is1PMode && (
+        <div className="absolute bottom-4 left-4 flex gap-2">
+          <Button
+            onClick={useHint}
+            variant="default"
+            size="sm"
+            className="gap-2"
+            disabled={powerupsUsed.hint || gameOver || !isPlayerTurn}
+          >
+            <Lightbulb className="h-4 w-4" />
+            Hint
+          </Button>
+          <Button
+            onClick={useBlockCell}
+            variant="default"
+            size="sm"
+            className="gap-2"
+            disabled={powerupsUsed.block || gameOver || !isPlayerTurn}
+          >
+            <Shield className="h-4 w-4" />
+            Block
+          </Button>
+        </div>
+      )}
 
       <div className="absolute top-4 right-4 flex gap-2">
         <Button
@@ -495,6 +603,16 @@ const GameBoard = () => {
                 >
                   {cell}
                 </span>
+              )}
+              {/* Hint indicator */}
+              {!cell && hintCell === index && (
+                <div className="absolute inset-0 bg-yellow-400/30 animate-pulse rounded-lg border-4 border-yellow-400" />
+              )}
+              {/* Blocked cell indicator */}
+              {blockedCell === index && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Shield className="h-16 w-16 text-red-500 animate-pulse" />
+                </div>
               )}
             </button>
           ))}

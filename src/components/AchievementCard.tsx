@@ -3,6 +3,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Lock, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import ShareButton from "./ShareButton";
 
 interface AchievementCardProps {
   achievement: {
@@ -27,6 +28,46 @@ export default function AchievementCard({ achievement, currentProgress, targetPr
   const progressPercentage = currentProgress && targetProgress 
     ? Math.min((currentProgress / targetProgress) * 100, 100) 
     : 0;
+
+  // Unlocked achievement with share button
+  if (achievement.unlocked) {
+    return (
+      <Card className="border-yellow-500 shadow-lg shadow-yellow-500/20">
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="text-4xl">{achievement.icon}</div>
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  {achievement.title}
+                  {achievement.is_premium && (
+                    <Crown className="h-4 w-4 text-yellow-500" />
+                  )}
+                </CardTitle>
+                <CardDescription className="text-sm mt-1">
+                  {achievement.description}
+                </CardDescription>
+              </div>
+            </div>
+          </div>
+          
+          {achievement.unlocked_at && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Unlocked: {new Date(achievement.unlocked_at).toLocaleDateString("id-ID")}
+            </p>
+          )}
+
+          <div className="mt-3">
+            <ShareButton 
+              title={`Achievement Unlocked: ${achievement.title}`}
+              description={achievement.description}
+              icon={achievement.icon}
+            />
+          </div>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   return (
     <Card
