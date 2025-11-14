@@ -111,6 +111,13 @@ export default function Themes() {
   }, [navigate, isPremium]);
 
   const applyTheme = async (theme: Theme) => {
+    // Double check premium requirement
+    if (theme.is_premium && !isPremium) {
+      toast.error("Theme ini hanya untuk member premium!");
+      navigate("/premium");
+      return;
+    }
+
     if (!theme.is_unlocked) {
       toast.error("Theme ini masih terkunci!");
       return;
@@ -131,11 +138,11 @@ export default function Themes() {
 
       if (error) throw error;
 
-      // Apply theme to CSS variables
-      document.documentElement.style.setProperty('--theme-grid', theme.grid_color);
-      document.documentElement.style.setProperty('--theme-x', theme.x_color);
-      document.documentElement.style.setProperty('--theme-o', theme.o_color);
-      document.documentElement.style.setProperty('--theme-bg', theme.background_color);
+      // Apply theme to CSS variables (matching useTheme.tsx variable names)
+      document.documentElement.style.setProperty('--grid-color', theme.grid_color);
+      document.documentElement.style.setProperty('--x-color', theme.x_color);
+      document.documentElement.style.setProperty('--o-color', theme.o_color);
+      document.documentElement.style.setProperty('--bg-color', theme.background_color);
 
       setThemes(themes.map(t => ({
         ...t,

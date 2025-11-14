@@ -30,12 +30,13 @@ const Referral = () => {
   };
 
   const loadReferralData = async (userId: string) => {
-    // Check if user has referral code
+    // Get user's own referral code (unused ones only for display)
     const { data: existingReferral } = await supabase
       .from("user_referrals")
       .select("*")
       .eq("referrer_id", userId)
-      .eq("used", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (existingReferral) {

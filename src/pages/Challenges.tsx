@@ -45,13 +45,21 @@ export default function Challenges() {
         
         setIsPremium(!!roles && roles.length > 0);
 
-        // Get or create today's challenges
-        const today = new Date().toISOString().split('T')[0];
+        // Get today's date at midnight local time
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayString = today.toISOString().split('T')[0];
+        
+        // Delete old challenges (older than today)
+        await supabase
+          .from("daily_challenges")
+          .delete()
+          .lt("challenge_date", todayString);
         
         let { data: todaysChallenges, error: fetchError } = await supabase
           .from("daily_challenges")
           .select("*")
-          .eq("challenge_date", today);
+          .eq("challenge_date", todayString);
 
         if (fetchError) throw fetchError;
 
@@ -59,7 +67,7 @@ export default function Challenges() {
         if (!todaysChallenges || todaysChallenges.length === 0) {
           const newChallenges = [
             {
-              challenge_date: today,
+              challenge_date: todayString,
               challenge_type: "daily_wins_3",
               title: "Triple Winner",
               description: "Menang 3 game hari ini",
@@ -69,7 +77,7 @@ export default function Challenges() {
               is_premium: false
             },
             {
-              challenge_date: today,
+              challenge_date: todayString,
               challenge_type: "daily_no_undo",
               title: "Pure Skills",
               description: "Menang 2 game tanpa menggunakan undo",
@@ -79,7 +87,7 @@ export default function Challenges() {
               is_premium: false
             },
             {
-              challenge_date: today,
+              challenge_date: todayString,
               challenge_type: "daily_streak",
               title: "Streak Builder",
               description: "Raih win streak 5",
