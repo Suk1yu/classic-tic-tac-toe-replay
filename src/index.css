@@ -29,8 +29,8 @@ All colors MUST be HSL.
     --accent: 217 91% 60%;
     --accent-foreground: 0 0% 98%;
 
-    --player-x: 217 91% 60%;
-    --player-o: 0 84% 60%;
+    --player-x: var(--x-color, 217 91% 60%);
+    --player-o: var(--o-color, 0 84% 60%);
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
@@ -41,7 +41,7 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
-    --grid-line: 0 0% 98%;
+    --grid-line: var(--grid-color, 0 0% 98%);
     --win-glow: 217 91% 60%;
     
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
