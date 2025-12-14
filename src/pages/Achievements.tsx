@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Trophy, BarChart3 } from "lucide-react";
+import { ArrowLeft, Trophy, BarChart3, Target, Palette } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import AchievementCard from "@/components/AchievementCard";
 
@@ -130,7 +130,23 @@ const Achievements = () => {
               onClick={() => navigate("/statistics")}
             >
               <BarChart3 className="h-4 w-4 mr-2" />
-              View Statistics
+              Statistics
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/challenges")}
+            >
+              <Target className="h-4 w-4 mr-2" />
+              Challenges
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/themes")}
+            >
+              <Palette className="h-4 w-4 mr-2" />
+              Themes
             </Button>
           </div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
