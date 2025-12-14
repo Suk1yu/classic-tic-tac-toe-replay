@@ -2,10 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Crown, Trophy } from "lucide-react";
+import { ArrowLeft, Crown, Trophy, User } from "lucide-react";
 import { toast } from "sonner";
 
 interface LeaderboardEntry {
@@ -19,9 +18,7 @@ interface LeaderboardEntry {
 
 export default function Leaderboard() {
   const navigate = useNavigate();
-  const [allLeaders, setAllLeaders] = useState<LeaderboardEntry[]>([]);
-  const [premiumLeaders, setPremiumLeaders] = useState<LeaderboardEntry[]>([]);
-  const [freeLeaders, setFreeLeaders] = useState<LeaderboardEntry[]>([]);
+  const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchLeaderboard = async () => {
@@ -39,9 +36,7 @@ export default function Leaderboard() {
       if (statsError) throw statsError;
 
       if (!statsData || statsData.length === 0) {
-        setAllLeaders([]);
-        setPremiumLeaders([]);
-        setFreeLeaders([]);
+        setLeaders([]);
         setLoading(false);
         return;
       }
@@ -79,9 +74,7 @@ export default function Leaderboard() {
         })
         .filter(entry => entry.best_streak > 0);
 
-      setAllLeaders(leaderboardData.slice(0, 10));
-      setPremiumLeaders(leaderboardData.filter(e => e.is_premium).slice(0, 10));
-      setFreeLeaders(leaderboardData.filter(e => !e.is_premium).slice(0, 10));
+      setLeaders(leaderboardData.slice(0, 10));
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
       toast.error("Gagal memuat leaderboard");
@@ -113,7 +106,7 @@ export default function Leaderboard() {
     };
   }, []);
 
-  const renderLeaderboard = (leaders: LeaderboardEntry[]) => {
+  const renderLeaderboard = () => {
     if (leaders.length === 0) {
       return (
         <div className="text-center py-8 text-muted-foreground">
@@ -139,12 +132,17 @@ export default function Leaderboard() {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-semibold truncate">{entry.email}</p>
-                  {entry.is_premium && (
-                    <Badge variant="default" className="shrink-0">
+                  {entry.is_premium ? (
+                    <Badge variant="default" className="shrink-0 bg-gradient-to-r from-yellow-500 to-amber-500 text-white">
                       <Crown className="w-3 h-3 mr-1" />
                       Premium
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="shrink-0">
+                      <User className="w-3 h-3 mr-1" />
+                      Free
                     </Badge>
                   )}
                 </div>
@@ -185,37 +183,11 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="all">All Players</TabsTrigger>
-            <TabsTrigger value="premium">Premium</TabsTrigger>
-            <TabsTrigger value="free">Free</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="all" className="mt-6">
-            {loading ? (
-              <div className="text-center py-8">Loading...</div>
-            ) : (
-              renderLeaderboard(allLeaders)
-            )}
-          </TabsContent>
-          
-          <TabsContent value="premium" className="mt-6">
-            {loading ? (
-              <div className="text-center py-8">Loading...</div>
-            ) : (
-              renderLeaderboard(premiumLeaders)
-            )}
-          </TabsContent>
-          
-          <TabsContent value="free" className="mt-6">
-            {loading ? (
-              <div className="text-center py-8">Loading...</div>
-            ) : (
-              renderLeaderboard(freeLeaders)
-            )}
-          </TabsContent>
-        </Tabs>
+        {loading ? (
+          <div className="text-center py-8">Loading...</div>
+        ) : (
+          renderLeaderboard()
+        )}
       </div>
     </div>
   );
